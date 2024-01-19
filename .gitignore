@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# Other files (server)
+src/server/build
+src/server/compile_commands.json
+src/server/.qmake.stash
+src/server/.cache
