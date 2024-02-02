@@ -36,3 +36,4 @@ src/*/build
 src/*/compile_commands.json
 src/*/.qmake.stash
 src/*/.cache
+src/*/.clang-format
