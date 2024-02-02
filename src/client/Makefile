@@ -1,9 +1,9 @@
 CC=gcc -std=c++17
 FLAGS=-Wall -Werror -Wextra -lstdc++
-APP_NAME=server
+APP_NAME=client
 BUILD_DIR=build
-
 OS:=$(shell uname -s)
+
 ifeq ($(OS),Linux)
   OPEN_CMD=xdg-open
 	LEAKS_CMD=valgrind --leak-check=full \
@@ -55,7 +55,4 @@ check_style:
 	@clang-format -style=Google -n *.cc */*.h */*.cc
 
 clean:
-	@rm -rf *.o *.gcno *.gcda *.info *.gcov *.a *.dSYM report *.out
-
-clean_files:
-	@rm -rf files/*
+	@-rm -rf *.o *.gcno *.gcda *.info *.gcov *.a *.dSYM report *.out

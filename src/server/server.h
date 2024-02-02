@@ -1,26 +1,39 @@
 #ifndef SERVER_H_
 #define SERVER_H_
 
+#include <QFile>
+#include <QObject>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QVector>
 
-class Server : public QTcpServer {
+class Server : public QObject {
   Q_OBJECT
 
 public:
-  Server();
-  QTcpSocket *socket;
+  Server(const int &port);
+  ~Server();
 
-public slots:
-  void incomingConnection(qintptr socketDescriptor);
-  void slotReadyRead();
+signals:
+  void NewFileUploaded(const QString &filename, const QString &load_time);
+
+private slots:
+  void NewConnection();
+
+  bool isExistsFile(const QString &filename);
+  void ReadMessageFromClient();
+  void ReceiveFileFromClient(QDataStream &in);
+  void SendFileToClient(const QString &filename, QTcpSocket *client);
+
+  void UpdateClientTable(const QString &filename, const QString &load_time);
+  // void DisconnectSocket();
+  // void ShowError();
 
 private:
-  void sendToClient(QString str);
+  QTcpServer *server_;
+  QSet<QTcpSocket *> client_sockets_;
 
-  QVector<QTcpSocket *> sockets_;
-  QByteArray data_;
+  QMap<QString, QString> file_map_;
 };
 
 #endif // SERVER_H_
