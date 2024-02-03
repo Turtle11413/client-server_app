@@ -154,7 +154,7 @@ void Client::OnDownloadButtonClicked() {
   // QString link = "http://www.google.com";
   // QDesktopServices::openUrl(QUrl(link));
 
-  RequestFileFromServer("maze.txt");
+  RequestFileFromServer("wallpaper.jpg");
 }
 
 void Client::SendFileToServer(QFile &file) {
@@ -178,6 +178,7 @@ void Client::SendFileToServer(QFile &file) {
   while (!file.atEnd()) {
     QByteArray buffer = file.read(8192);
     out.writeRawData(buffer.constData(), buffer.size());
+    buffer.clear();
   }
 }
 
@@ -202,9 +203,9 @@ void Client::ReceiveFileFromServer(QDataStream &in) {
   in >> filename;
   std::cout << "filename: " << filename.toStdString() << std::endl;
 
-  int size = 0;
-  in >> size;
-  std::cout << "control size: " << size << std::endl;
+  int file_size = 0;
+  in >> file_size;
+  std::cout << "control size: " << file_size << std::endl;
 
   QString file_path = QFileDialog::getExistingDirectory(this, tr("Save file"),
                                                         QDir::homePath());
@@ -213,10 +214,13 @@ void Client::ReceiveFileFromServer(QDataStream &in) {
     QByteArray file_data;
 
     if (received_file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-      in >> file_data;
-      std::cout << "size: " << file_data.size() << std::endl;
-      received_file.write(file_data);
-      std::cout << "file received\n";
+      QByteArray buffer;
+      buffer.resize(file_size);
+      in.readRawData(buffer.data(), file_size);
+      received_file.write(buffer);
+
+      std::cout << "received file size: " << QFileInfo(received_file).size()
+                << std::endl;
     }
 
     received_file.close();
