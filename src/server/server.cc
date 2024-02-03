@@ -102,14 +102,21 @@ void Server::ReceiveFileFromClient(QDataStream &in) {
 
   if (loadedFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
 
-    QByteArray buffer;
-    buffer.resize(file_size);
-    in.readRawData(buffer.data(), file_size);
-    loadedFile.write(buffer);
+    while (file_size > 0 && !in.atEnd()) {
+      QByteArray buffer;
+      buffer.resize(file_size);
+      in.readRawData(buffer.data(), file_size);
+      loadedFile.write(buffer);
+      file_size -= buffer.size();
+    }
+    // QByteArray file_data;
+    // file_data.resize(file_size);
 
+    // in.readRawData(file_data.data(), file_size);
     std::cout << "received file size: " << QFileInfo(loadedFile).size()
               << std::endl;
 
+    // loadedFile.write(file_data);
     std::cout << "file received\n";
   }
 
