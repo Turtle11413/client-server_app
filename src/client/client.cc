@@ -84,8 +84,22 @@ void Client::AddNewRow(const QString &filename, const QString &link,
   table_widget_->insertRow(new_row_cnt);
 
   table_widget_->setItem(new_row_cnt, 0, new QTableWidgetItem(filename));
-  table_widget_->setItem(new_row_cnt, 1, new QTableWidgetItem(link));
+
+  QTableWidgetItem *link_item = new QTableWidgetItem(link);
+  link_item->setForeground(Qt::blue);
+  link_item->setFlags(link_item->flags() | Qt::ItemIsSelectable);
+  table_widget_->setItem(new_row_cnt, 1, link_item);
+  connect(table_widget_, &QTableWidget::itemClicked, this,
+          &Client::DownloadLink);
+
   table_widget_->setItem(new_row_cnt, 2, new QTableWidgetItem(load_date));
+}
+
+void Client::DownloadLink(QTableWidgetItem *item) {
+  QString link = item->text();
+  // QDesktopServices::openUrl(QUrl(link));
+  QString filename = QFileInfo(QUrl(link).path()).fileName();
+  RequestFileFromServer(filename);
 }
 
 void Client::OverrideRow(const QString &filename, const QString &link,
@@ -116,7 +130,7 @@ void Client::onConnected() {
 void Client::onConnectionError(QAbstractSocket::SocketError socketError) {
   Q_UNUSED(socketError);
   QMessageBox::warning(
-      this, "Error",
+      this, "Warning",
       "Failed to connect to the server: " + socket_->errorString());
   is_connected_ = false;
   client_status_label_->setText("Client status: Disconnected");
@@ -151,7 +165,7 @@ void Client::OnSendButtonClicked() {
 }
 
 void Client::OnDownloadButtonClicked() {
-  // QString link = "http://www.google.com";
+  // QString link = "http://localhost:1111/files/wallpaper.jpg";
   // QDesktopServices::openUrl(QUrl(link));
 
   RequestFileFromServer("wallpaper.jpg");
@@ -180,6 +194,8 @@ void Client::SendFileToServer(QFile &file) {
     out.writeRawData(buffer.constData(), buffer.size());
     buffer.clear();
   }
+
+  // socket_->write(buffer);
 }
 
 void Client::ReadServerMessage() {
@@ -232,10 +248,12 @@ void Client::ReadFromServerForUpdateTable(QDataStream &in,
   QString filename, load_time;
   in >> filename >> load_time;
 
+  QString link = "http://localhost:1111/files/" + filename;
+
   if (message == "NEW_FILE") {
-    AddNewRow(filename, "link", load_time);
+    AddNewRow(filename, link, load_time);
   } else if (message == "OVERRIDE") {
-    OverrideRow(filename, "link", load_time);
+    OverrideRow(filename, link, load_time);
   }
 }
 

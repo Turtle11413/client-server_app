@@ -55,4 +55,7 @@ check_style:
 	@clang-format -style=Google -n *.cc */*.h */*.cc
 
 clean:
-	@-rm -rf *.o *.gcno *.gcda *.info *.gcov *.a *.dSYM report *.out
+	@rm -rf *.o *.gcno *.gcda *.info *.gcov *.a *.dSYM report *.out
+
+clean_trash:
+	@rm -rf trash/*
