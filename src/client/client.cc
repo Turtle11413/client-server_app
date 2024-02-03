@@ -1,4 +1,4 @@
-#include "view.h"
+#include "client.h"
 
 #include <QDesktopServices>
 #include <QFileDialog>
@@ -6,12 +6,12 @@
 #include <QMessageBox>
 #include <iostream>
 
-View::View() : QWidget(nullptr) {
+Client::Client() : QWidget(nullptr) {
   InitMainWindow();
   CreateSocket();
 }
 
-void View::InitMainWindow() {
+void Client::InitMainWindow() {
   InitTableWidget();
   InitButtons();
   InitLabels();
@@ -23,7 +23,7 @@ void View::InitMainWindow() {
   this->resize(1000, 500);
 }
 
-void View::InitTableWidget() {
+void Client::InitTableWidget() {
   table_widget_ = new QTableWidget(0, 3, this);
 
   table_widget_->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -34,29 +34,29 @@ void View::InitTableWidget() {
   table_widget_->setHorizontalHeaderLabels(headers);
 }
 
-void View::InitButtons() {
+void Client::InitButtons() {
   connect_button_ = new QPushButton("Connect", this);
   connect_button_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
   connect(connect_button_, &QPushButton::clicked, this,
-          &View::OnConnectButtonClicked);
+          &Client::OnConnectButtonClicked);
 
   send_button_ = new QPushButton("Send", this);
   send_button_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
   connect(send_button_, &QPushButton::clicked, this,
-          &View::OnSendButtonClicked);
+          &Client::OnSendButtonClicked);
 
   download_button_ = new QPushButton("Download", this);
   download_button_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
   connect(download_button_, &QPushButton::clicked, this,
-          &View::OnDownloadButtonClicked);
+          &Client::OnDownloadButtonClicked);
 }
 
-void View::InitLabels() {
+void Client::InitLabels() {
   client_status_label_ = new QLabel(this);
   client_status_label_->setText(tr("Client status: Disconnected"));
 }
 
-void View::MainWindowPlaceItems() {
+void Client::MainWindowPlaceItems() {
   main_layout_ = new QGridLayout(this);
 
   main_layout_->addWidget(table_widget_, 0, 0, 3, 3);
@@ -68,8 +68,8 @@ void View::MainWindowPlaceItems() {
   main_layout_->addWidget(client_status_label_, 3, 0, 1, 4);
 }
 
-void View::AddNewRow(const QString &filename, const QString &link,
-                     const QString &load_date) {
+void Client::AddNewRow(const QString &filename, const QString &link,
+                       const QString &load_date) {
   int new_row_cnt = table_widget_->rowCount();
 
   table_widget_->insertRow(new_row_cnt);
@@ -79,8 +79,8 @@ void View::AddNewRow(const QString &filename, const QString &link,
   table_widget_->setItem(new_row_cnt, 2, new QTableWidgetItem(load_date));
 }
 
-void View::OverrideRow(const QString &filename, const QString &link,
-                       const QString &load_date) {
+void Client::OverrideRow(const QString &filename, const QString &link,
+                         const QString &load_date) {
   for (int row = 0; row < table_widget_->rowCount(); ++row) {
     QString curFilename = table_widget_->item(row, 0)->text();
     if (curFilename == filename) {
@@ -91,19 +91,20 @@ void View::OverrideRow(const QString &filename, const QString &link,
   AddNewRow(filename, link, load_date);
 }
 
-void View::CreateSocket() {
+void Client::CreateSocket() {
   socket_ = new QTcpSocket(this);
-  connect(socket_, &QTcpSocket::connected, this, &View::onConnected);
-  connect(socket_, &QTcpSocket::errorOccurred, this, &View::onConnectionError);
-  connect(socket_, &QTcpSocket::readyRead, this, &View::ReadServerMessage);
+  connect(socket_, &QTcpSocket::connected, this, &Client::onConnected);
+  connect(socket_, &QTcpSocket::errorOccurred, this,
+          &Client::onConnectionError);
+  connect(socket_, &QTcpSocket::readyRead, this, &Client::ReadServerMessage);
 }
 
-void View::onConnected() {
+void Client::onConnected() {
   is_connected_ = true;
   client_status_label_->setText("Client status: Connected");
 }
 
-void View::onConnectionError(QAbstractSocket::SocketError socketError) {
+void Client::onConnectionError(QAbstractSocket::SocketError socketError) {
   Q_UNUSED(socketError);
   QMessageBox::warning(
       this, "Error",
@@ -112,7 +113,7 @@ void View::onConnectionError(QAbstractSocket::SocketError socketError) {
   client_status_label_->setText("Client status: Disconnected");
 }
 
-void View::OnConnectButtonClicked() {
+void Client::OnConnectButtonClicked() {
   if (!isConnected()) {
     socket_->connectToHost("127.0.0.1", 1111);
   } else {
@@ -120,7 +121,7 @@ void View::OnConnectButtonClicked() {
   }
 }
 
-void View::OnSendButtonClicked() {
+void Client::OnSendButtonClicked() {
   if (isConnected()) {
     QString file_path =
         QFileDialog::getOpenFileName(this, "Choose a file to upload");
@@ -139,14 +140,14 @@ void View::OnSendButtonClicked() {
   }
 }
 
-void View::OnDownloadButtonClicked() {
+void Client::OnDownloadButtonClicked() {
   // QString link = "http://www.google.com";
   // QDesktopServices::openUrl(QUrl(link));
 
   RequestFileFromServer("client.pro");
 }
 
-void View::SendFileToServer(QFile &file) {
+void Client::SendFileToServer(QFile &file) {
   QDataStream out(socket_);
   out.setVersion(QDataStream::Qt_6_6);
 
@@ -169,7 +170,7 @@ void View::SendFileToServer(QFile &file) {
   out << file_data;
 }
 
-void View::ReadServerMessage() {
+void Client::ReadServerMessage() {
   QDataStream in(socket_);
   in.setVersion(QDataStream::Qt_6_6);
 
@@ -185,7 +186,7 @@ void View::ReadServerMessage() {
   }
 }
 
-void View::ReceiveFileFromServer(QDataStream &in) {
+void Client::ReceiveFileFromServer(QDataStream &in) {
   QString filename;
   in >> filename;
   std::cout << "filename: " << filename.toStdString() << std::endl;
@@ -207,8 +208,8 @@ void View::ReceiveFileFromServer(QDataStream &in) {
   received_file.close();
 }
 
-void View::ReadFromServerForUpdateTable(QDataStream &in,
-                                        const QString &message) {
+void Client::ReadFromServerForUpdateTable(QDataStream &in,
+                                          const QString &message) {
   QString filename, load_time;
   in >> filename >> load_time;
 
@@ -219,7 +220,7 @@ void View::ReadFromServerForUpdateTable(QDataStream &in,
   }
 }
 
-void View::RequestFileFromServer(const QString &filename) {
+void Client::RequestFileFromServer(const QString &filename) {
   QDataStream out(socket_);
   out.setVersion(QDataStream::Qt_6_6);
 

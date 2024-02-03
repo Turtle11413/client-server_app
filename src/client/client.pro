@@ -3,12 +3,12 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 CONFIG += c++17
 
-SOURCES +=	\
-	view/view.cc \
+SOURCES +=  \
+	client.cc \
 	main.cc
 
 HEADERS +=	\
-	view/view.h
+	client.h
 
 DESTDIR     = build/
 MOC_DIR		  = build/moc

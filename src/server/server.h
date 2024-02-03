@@ -26,7 +26,7 @@ private slots:
   void SendFileToClient(const QString &filename, QTcpSocket *client);
 
   void UpdateClientTable(const QString &filename, const QString &load_time);
-  // void DisconnectSocket();
+  void ClientDisconnected();
   // void ShowError();
 
 private:

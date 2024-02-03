@@ -10,10 +10,10 @@
 #include <QTextBrowser>
 #include <QWidget>
 
-class View : public QWidget {
+class Client : public QWidget {
   Q_OBJECT
  public:
-  View();
+  Client();
   bool isConnected() const noexcept { return is_connected_; }
 
  public slots:
