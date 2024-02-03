@@ -37,3 +37,6 @@ src/*/compile_commands.json
 src/*/.qmake.stash
 src/*/.cache
 src/*/.clang-format
+src/*/QMakefile
+src/server/files/
+src/client/trash/
