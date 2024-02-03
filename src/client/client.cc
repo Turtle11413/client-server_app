@@ -11,6 +11,15 @@ Client::Client() : QWidget(nullptr) {
   CreateSocket();
 }
 
+Client::~Client() {
+  if (socket_->isOpen()) {
+    socket_->close();
+  }
+
+  socket_->disconnect();
+  socket_->deleteLater();
+}
+
 void Client::InitMainWindow() {
   InitTableWidget();
   InitButtons();
@@ -132,6 +141,7 @@ void Client::OnSendButtonClicked() {
         return;
       }
       SendFileToServer(file);
+      file.close();
     } else {
       QMessageBox::warning(this, "Warning", "Can't open file");
     }
@@ -144,7 +154,7 @@ void Client::OnDownloadButtonClicked() {
   // QString link = "http://www.google.com";
   // QDesktopServices::openUrl(QUrl(link));
 
-  RequestFileFromServer("client.pro");
+  RequestFileFromServer("maze.txt");
 }
 
 void Client::SendFileToServer(QFile &file) {
@@ -165,9 +175,10 @@ void Client::SendFileToServer(QFile &file) {
   out << file_size;
   std::cout << "size: " << file_size << std::endl;
 
-  QByteArray file_data = file.readAll();
-  std::cout << "file data size: " << file_data.size() << std::endl;
-  out << file_data;
+  while (!file.atEnd()) {
+    QByteArray buffer = file.read(8192);
+    out.writeRawData(buffer.constData(), buffer.size());
+  }
 }
 
 void Client::ReadServerMessage() {
@@ -195,17 +206,21 @@ void Client::ReceiveFileFromServer(QDataStream &in) {
   in >> size;
   std::cout << "control size: " << size << std::endl;
 
-  QFile received_file(filename);
-  QByteArray file_data;
+  QString file_path = QFileDialog::getExistingDirectory(this, tr("Save file"),
+                                                        QDir::homePath());
+  if (!file_path.isEmpty()) {
+    QFile received_file(file_path + "/" + filename);
+    QByteArray file_data;
 
-  if (received_file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-    in >> file_data;
-    std::cout << "size: " << file_data.size() << std::endl;
-    received_file.write(file_data);
-    std::cout << "file received\n";
+    if (received_file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+      in >> file_data;
+      std::cout << "size: " << file_data.size() << std::endl;
+      received_file.write(file_data);
+      std::cout << "file received\n";
+    }
+
+    received_file.close();
   }
-
-  received_file.close();
 }
 
 void Client::ReadFromServerForUpdateTable(QDataStream &in,

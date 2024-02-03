@@ -14,6 +14,7 @@ class Client : public QWidget {
   Q_OBJECT
  public:
   Client();
+  ~Client();
   bool isConnected() const noexcept { return is_connected_; }
 
  public slots:

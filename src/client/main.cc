@@ -1,12 +1,12 @@
 #include <QApplication>
 
-#include "view/view.h"
+#include "client.h"
 
 int main(int argc, char *argv[]) {
   QApplication app(argc, argv);
 
-  View view;
-  view.show();
+  Client client;
+  client.show();
 
   return app.exec();
 }
