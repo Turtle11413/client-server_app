@@ -45,7 +45,7 @@ void Client::InitTableWidget() {
 
 void Client::InitButtons() {
   connect_button_ = new QPushButton("Connect", this);
-  connect_button_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
+  connect_button_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
   connect(connect_button_, &QPushButton::clicked, this,
           &Client::OnConnectButtonClicked);
 
@@ -53,16 +53,12 @@ void Client::InitButtons() {
   send_button_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
   connect(send_button_, &QPushButton::clicked, this,
           &Client::OnSendButtonClicked);
-
-  download_button_ = new QPushButton("Download", this);
-  download_button_->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
-  connect(download_button_, &QPushButton::clicked, this,
-          &Client::OnDownloadButtonClicked);
 }
 
 void Client::InitLabels() {
   client_status_label_ = new QLabel(this);
   client_status_label_->setText(tr("Client status: Disconnected"));
+  client_status_label_->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed);
 }
 
 void Client::MainWindowPlaceItems() {
@@ -71,10 +67,9 @@ void Client::MainWindowPlaceItems() {
   main_layout_->addWidget(table_widget_, 0, 0, 3, 3);
 
   main_layout_->addWidget(connect_button_, 0, 3, 1, 1);
-  main_layout_->addWidget(send_button_, 1, 3, 1, 1);
-  main_layout_->addWidget(download_button_, 2, 3, 1, 1);
+  main_layout_->addWidget(send_button_, 1, 3, 2, 1);
 
-  main_layout_->addWidget(client_status_label_, 3, 0, 1, 4);
+  main_layout_->addWidget(client_status_label_, 3, 0, 1, 3);
 }
 
 void Client::AddNewRow(const QString &filename, const QString &link,
