@@ -20,9 +20,9 @@ ifeq ($(OS),Darwin)
 	GCOV_FLAGS=--ignore-errors mismatch
 endif
 
-all: install run_app
+all: install run_client
 
-rebuild: uninstall install run_app
+rebuild: uninstall install run_client
 
 install:
 	@qmake -o QMakefile
@@ -32,7 +32,7 @@ uninstall: clean
 	@rm -rf $(BUILD_DIR)
 	@rm -rf QMakefile
 
-run_app: install
+run_client: install
 ifeq ($(OS),Darwin)
 	./$(BUILD_DIR)/$(APP_NAME).app/Contents/MacOS/$(APP_NAME)
 endif
@@ -40,22 +40,11 @@ ifeq ($(OS),Linux)
 	./$(BUILD_DIR)/$(APP_NAME)
 endif
 
-leaks: install
-ifeq ($(OS),Darwin)
-	@$(LEAKS_CMD) ./$(BUILD_DIR)/$(APP_NAME).app/Contents/MacOS/$(APP_NAME)
-endif
-ifeq ($(OS),Linux)
-	@$(LEAKS_CMD) ./$(BUILD_DIR)/$(APP_NAME)
-endif
-
 style:
-	@clang-format -style=Google -i *.cc */*.h */*.cc
+	@clang-format -style=Google -i *.cc *.h */*.h */*.cc
 
 check_style:
-	@clang-format -style=Google -n *.cc */*.h */*.cc
+	@clang-format -style=Google -n *.cc *.h */*.h */*.cc
 
 clean:
 	@rm -rf *.o *.gcno *.gcda *.info *.gcov *.a *.dSYM report *.out
-
-clean_trash:
-	@rm -rf trash/*
