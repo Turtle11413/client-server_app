@@ -34,14 +34,16 @@ void Server::FillFileMap() {
   QDir directory("files/");
 
   QFileInfoList files_list = directory.entryInfoList(QDir::Files);
-  file_map_.clear();
+  // file_map_.clear();
+  std::cout << "Files list size: " << files_list.size() << std::endl;
 
-  for (const QFileInfo &fileInfo : files_list) {
-    QString filename = fileInfo.fileName();
-    QString load_time = fileInfo.lastModified().toString(Qt::ISODate);
+  for (auto it : files_list) {
+    QString filename = it.fileName();
+    QString load_time = it.lastModified().toString();
 
     file_map_.insert(filename, load_time);
   }
+  std::cout << "map size: " << file_map_.size() << std::endl;
 }
 
 void Server::NewConnection() {
@@ -55,6 +57,7 @@ void Server::NewConnection() {
             &Server::ClientDisconnected);
 
     if (!file_map_.empty()) {
+      std::cout << "map size: " << file_map_.size() << std::endl;
       for (auto it = file_map_.begin(); it != file_map_.end(); ++it) {
         UpdateClientTable(it.key(), it.value());
       }
@@ -89,7 +92,7 @@ void Server::ReadMessageFromClient() {
   QString message;
   in >> message;
 
-  std::cout << "Message is: " << message.toStdString() << std::endl;
+  std::cout << "\nMessage is: " << message.toStdString() << std::endl;
 
   if (message == "UPLOAD_FILE") {
 
@@ -157,7 +160,7 @@ void Server::SendFileToClient(const QString &filename, QTcpSocket *client) {
 
   QString message = "SEND_FILE_FOR_U";
   out << message;
-  std::cout << message.toStdString() << std::endl;
+  std::cout << std::endl << message.toStdString() << std::endl;
 
   out << filename;
   std::cout << "filename: " << filename.toStdString() << std::endl;
