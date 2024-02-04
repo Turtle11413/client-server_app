@@ -35,6 +35,7 @@ class Client : public QWidget {
   void RequestFileFromServer(const QString &filename);
   void ReceiveFileFromServer(QDataStream &in);
   void ReadFromServerForUpdateTable(QDataStream &in, const QString &message);
+  void LoadTableFromServer(QDataStream &in);
   void DownloadLink(QTableWidgetItem *item);
   void SendFileToServer(QFile &file);
 

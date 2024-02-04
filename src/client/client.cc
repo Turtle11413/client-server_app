@@ -206,6 +206,8 @@ void Client::ReadServerMessage() {
     ReceiveFileFromServer(in);
   } else if (message == "NEW_FILE" || message == "OVERRIDE") {
     ReadFromServerForUpdateTable(in, message);
+  } else if (message == "LOAD_TABLE") {
+    LoadTableFromServer(in);
   }
 }
 
@@ -274,6 +276,20 @@ void Client::ReadFromServerForUpdateTable(QDataStream &in,
     AddNewRow(filename, link, load_time);
   } else if (message == "OVERRIDE") {
     OverrideRow(filename, link, load_time);
+  }
+}
+
+void Client::LoadTableFromServer(QDataStream &in) {
+  quint16 size = 0;
+  in >> size;
+
+  for (quint16 i = 0; i < size; ++i) {
+    QString filename;
+    QString load_date;
+    in >> load_date >> filename;
+    QString link = "http://localhost:1111/files/" + filename;
+
+    AddNewRow(filename, link, load_date);
   }
 }
 
