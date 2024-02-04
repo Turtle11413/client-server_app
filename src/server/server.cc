@@ -39,9 +39,9 @@ void Server::FillFileMap() {
 
   for (auto it : files_list) {
     QString filename = it.fileName();
-    QString load_time = it.lastModified().toString();
+    QString load_date = it.lastModified().toString();
 
-    file_map_.insert(filename, load_time);
+    file_map_.insert(load_date, filename);
   }
   std::cout << "map size: " << file_map_.size() << std::endl;
 }
@@ -56,12 +56,7 @@ void Server::NewConnection() {
     connect(socket, &QTcpSocket::disconnected, this,
             &Server::ClientDisconnected);
 
-    if (!file_map_.empty()) {
-      std::cout << "map size: " << file_map_.size() << std::endl;
-      for (auto it = file_map_.begin(); it != file_map_.end(); ++it) {
-        UpdateClientTable(it.key(), it.value());
-      }
-    }
+    LoadTable(socket);
 
     std::cout << "New client connected: " << socket->peerPort() << std::endl;
     std::cout << "size: " << client_sockets_.size() << std::endl;
@@ -151,7 +146,7 @@ void Server::ReceiveFileFromClient(QDataStream &in, QTcpSocket *client) {
 
   emit NewFileUploaded(filename, send_date);
 
-  file_map_.insert(filename, send_date);
+  file_map_.insert(send_date, filename);
 }
 
 void Server::SendFileToClient(const QString &filename, QTcpSocket *client) {
@@ -204,5 +199,23 @@ void Server::UpdateClientTable(const QString &filename,
 
   for (auto client : client_sockets_) {
     client->write(buffer);
+  }
+}
+
+void Server::LoadTable(QTcpSocket *client) {
+  QDataStream out(client);
+  out.setVersion(QDataStream::Qt_6_6);
+
+  QString message = "LOAD_TABLE";
+  out << message;
+
+  quint16 table_size = file_map_.size();
+  out << table_size;
+
+  if (!file_map_.empty()) {
+    std::cout << "map size: " << file_map_.size() << std::endl;
+    for (auto it = file_map_.begin(); it != file_map_.end(); ++it) {
+      out << it.key() << it.value();
+    }
   }
 }

@@ -25,11 +25,13 @@ private slots:
   void ReceiveFileFromClient(QDataStream &in, QTcpSocket *client);
   void SendFileToClient(const QString &filename, QTcpSocket *client);
 
+  // void SendTable(const QString &filename, const QString &load_time);
   void UpdateClientTable(const QString &filename, const QString &load_time);
   void ClientDisconnected();
 
 private:
   void FillFileMap();
+  void LoadTable(QTcpSocket *client);
 
   QTcpServer *server_;
   QSet<QTcpSocket *> client_sockets_;
