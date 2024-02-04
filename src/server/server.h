@@ -22,14 +22,15 @@ private slots:
 
   bool isExistsFile(const QString &filename);
   void ReadMessageFromClient();
-  void ReceiveFileFromClient(QDataStream &in);
+  void ReceiveFileFromClient(QDataStream &in, QTcpSocket *client);
   void SendFileToClient(const QString &filename, QTcpSocket *client);
 
   void UpdateClientTable(const QString &filename, const QString &load_time);
   void ClientDisconnected();
-  // void ShowError();
 
 private:
+  void FillFileMap();
+
   QTcpServer *server_;
   QSet<QTcpSocket *> client_sockets_;
 

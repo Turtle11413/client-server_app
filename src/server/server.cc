@@ -9,10 +9,11 @@ Server::Server(const int &port) {
     std::cout << "\tServer is running\n"
               << "\tPort: " << port << std::endl;
 
+    QDir().mkpath("./files/");
+    FillFileMap();
+
     connect(server_, &QTcpServer::newConnection, this, &Server::NewConnection);
     connect(this, &Server::NewFileUploaded, this, &Server::UpdateClientTable);
-
-    QDir().mkpath("./files/");
 
   } else {
     std::cout << "Unable to start server\n";
@@ -29,6 +30,20 @@ Server::~Server() {
   server_->deleteLater();
 }
 
+void Server::FillFileMap() {
+  QDir directory("files/");
+
+  QFileInfoList files_list = directory.entryInfoList(QDir::Files);
+  file_map_.clear();
+
+  for (const QFileInfo &fileInfo : files_list) {
+    QString filename = fileInfo.fileName();
+    QString load_time = fileInfo.lastModified().toString(Qt::ISODate);
+
+    file_map_.insert(filename, load_time);
+  }
+}
+
 void Server::NewConnection() {
   while (server_->hasPendingConnections()) {
     QTcpSocket *socket = server_->nextPendingConnection();
@@ -38,6 +53,12 @@ void Server::NewConnection() {
             &Server::ReadMessageFromClient);
     connect(socket, &QTcpSocket::disconnected, this,
             &Server::ClientDisconnected);
+
+    if (!file_map_.empty()) {
+      for (auto it = file_map_.begin(); it != file_map_.end(); ++it) {
+        UpdateClientTable(it.key(), it.value());
+      }
+    }
 
     std::cout << "New client connected: " << socket->peerPort() << std::endl;
     std::cout << "size: " << client_sockets_.size() << std::endl;
@@ -64,16 +85,15 @@ void Server::ReadMessageFromClient() {
 
   QDataStream in(socket);
   in.setVersion(QDataStream::Qt_6_6);
-  in.setFloatingPointPrecision(QDataStream::SinglePrecision);
-  in.setByteOrder(QDataStream::BigEndian);
 
   QString message;
   in >> message;
 
-  std::cout << message.toStdString() << std::endl;
+  std::cout << "Message is: " << message.toStdString() << std::endl;
 
   if (message == "UPLOAD_FILE") {
-    ReceiveFileFromClient(in);
+
+    ReceiveFileFromClient(in, socket);
   } else if (message == "SEND_ME_FILE") {
     QString filename;
     in >> filename;
@@ -85,51 +105,54 @@ bool Server::isExistsFile(const QString &filename) {
   return file_map_.contains(filename);
 }
 
-void Server::ReceiveFileFromClient(QDataStream &in) {
+void Server::ReceiveFileFromClient(QDataStream &in, QTcpSocket *client) {
+  std::cout << "Start receiving from client\n";
+
   QString filename;
   in >> filename;
-  std::cout << "filename: " << filename.toStdString() << std::endl;
+  std::cout << "filename is: " << filename.toStdString() << std::endl;
 
-  QString load_time;
-  in >> load_time;
-  std::cout << "load_time: " << load_time.toStdString() << std::endl;
+  QString send_date;
+  in >> send_date;
+  std::cout << "date is: " << send_date.toStdString() << std::endl;
 
-  int file_size;
-  in >> file_size;
-  std::cout << "control size: " << file_size << std::endl;
+  qint64 size = 0;
+  in >> size;
 
-  QFile loadedFile("./files/" + filename);
-
-  if (loadedFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-
-    while (file_size > 0 && !in.atEnd()) {
-      QByteArray buffer;
-      buffer.resize(file_size);
-      in.readRawData(buffer.data(), file_size);
-      loadedFile.write(buffer);
-      file_size -= buffer.size();
-    }
-    // QByteArray file_data;
-    // file_data.resize(file_size);
-
-    // in.readRawData(file_data.data(), file_size);
-    std::cout << "received file size: " << QFileInfo(loadedFile).size()
-              << std::endl;
-
-    // loadedFile.write(file_data);
-    std::cout << "file received\n";
+  QFile file("./files/" + filename);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+    std::cerr << "Failed to open file for writing!";
+    return;
   }
 
-  loadedFile.close();
+  QByteArray buffer;
+  qint64 bytes_receive = 0;
 
-  emit NewFileUploaded(filename, load_time);
+  while (bytes_receive < size) {
+    buffer = client->read(qMin(size - bytes_receive, qint64(8192)));
+    bytes_receive += buffer.size();
+    file.write(buffer);
+    // std::cout << buffer.toStdString();
+    if (buffer.isEmpty()) {
+      if (!client->waitForReadyRead()) {
+        std::cerr << "Error: waitForReadyRead() failed" << std::endl;
+        file.close();
+        return;
+      }
+    }
+  }
 
-  file_map_.insert(filename, load_time);
+  std::cout << "Send file size: " << bytes_receive << std::endl;
+
+  file.close();
+
+  emit NewFileUploaded(filename, send_date);
+
+  file_map_.insert(filename, send_date);
 }
 
 void Server::SendFileToClient(const QString &filename, QTcpSocket *client) {
-  QByteArray buffer;
-  QDataStream out(&buffer, QIODevice::WriteOnly);
+  QDataStream out(client);
   out.setVersion(QDataStream::Qt_6_6);
 
   QString message = "SEND_FILE_FOR_U";
@@ -141,21 +164,23 @@ void Server::SendFileToClient(const QString &filename, QTcpSocket *client) {
 
   QFile file("./files/" + filename);
 
-  int file_size = QFileInfo(file).size();
+  qint64 file_size = QFileInfo(file).size();
   out << file_size;
   std::cout << "size: " << file_size << std::endl;
 
   if (file.open(QIODevice::ReadOnly)) {
 
-    while (!file.atEnd()) {
-      QByteArray buffer = file.read(8192);
-      out.writeRawData(buffer.constData(), buffer.size());
-      buffer.clear();
+    QByteArray buffer;
+    const int block_size = 8192;
+    qint64 bytes_send = 0;
+
+    while (bytes_send < file_size) {
+      buffer = file.read(block_size);
+      bytes_send += client->write(buffer);
+      client->waitForBytesWritten();
     }
 
     file.close();
-
-    client->write(buffer);
   }
 }
 
