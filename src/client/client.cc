@@ -97,7 +97,6 @@ void Client::AddNewRow(const QString &filename, const QString &link,
 
 void Client::DownloadLink(QTableWidgetItem *item) {
   QString link = item->text();
-  // QDesktopServices::openUrl(QUrl(link));
   QString filename = QFileInfo(QUrl(link).path()).fileName();
   RequestFileFromServer(filename);
 }
@@ -173,29 +172,32 @@ void Client::OnDownloadButtonClicked() {
 
 void Client::SendFileToServer(QFile &file) {
   QDataStream out(socket_);
-  out.setVersion(QDataStream::Qt_6_6);
-
   QString message = "UPLOAD_FILE";
   out << message;
+
   QString filename = QFileInfo(file).fileName();
   out << filename;
-  std::cout << "filename: " << filename.toStdString() << std::endl;
+  // std::cout << "filename: " << filename.toStdString() << std::endl;
 
   QString send_date = QDateTime::currentDateTime().toString();
   out << send_date;
-  std::cout << "send date: " << send_date.toStdString() << std::endl;
+  // std::cout << "send date: " << send_date.toStdString() << std::endl;
 
-  int file_size = QFileInfo(file).size();
+  qint64 file_size = QFileInfo(file).size();
   out << file_size;
-  std::cout << "size: " << file_size << std::endl;
+  // std::cout << "size: " << file_size << std::endl;
 
-  while (!file.atEnd()) {
-    QByteArray buffer = file.read(8192);
-    out.writeRawData(buffer.constData(), buffer.size());
-    buffer.clear();
+  QByteArray buffer;
+  const int block_size = 8192;
+  qint64 bytes_send = 0;
+
+  while (bytes_send < file_size) {
+    buffer = file.read(block_size);
+    bytes_send += socket_->write(buffer);
+    socket_->waitForBytesWritten();
   }
 
-  // socket_->write(buffer);
+  std::cout << "Send file size: " << bytes_send << std::endl;
 }
 
 void Client::ReadServerMessage() {
@@ -207,8 +209,6 @@ void Client::ReadServerMessage() {
 
   if (message == "SEND_FILE_FOR_U") {
     ReceiveFileFromServer(in);
-  } else if (message == "ADD_NEW_FILE_TO_TABLE") {
-    ReadFromServerForUpdateTable(in, message);
   } else if (message == "NEW_FILE" || message == "OVERRIDE") {
     ReadFromServerForUpdateTable(in, message);
   }
@@ -219,7 +219,7 @@ void Client::ReceiveFileFromServer(QDataStream &in) {
   in >> filename;
   std::cout << "filename: " << filename.toStdString() << std::endl;
 
-  int file_size = 0;
+  qint64 file_size = 0;
   in >> file_size;
   std::cout << "control size: " << file_size << std::endl;
 
@@ -231,15 +231,40 @@ void Client::ReceiveFileFromServer(QDataStream &in) {
 
     if (received_file.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
       QByteArray buffer;
-      buffer.resize(file_size);
-      in.readRawData(buffer.data(), file_size);
-      received_file.write(buffer);
+      qint64 bytes_receive = 0;
 
-      std::cout << "received file size: " << QFileInfo(received_file).size()
-                << std::endl;
+      while (bytes_receive < file_size) {
+        buffer = socket_->read(qMin(file_size - bytes_receive, qint64(8192)));
+        bytes_receive += buffer.size();
+        received_file.write(buffer);
+        // std::cout << buffer.toStdString();
+        if (buffer.isEmpty()) {
+          if (!socket_->waitForReadyRead()) {
+            // std::cerr << "Error: waitForReadyRead() failed" << std::endl;
+            QMessageBox::warning(this, "Erorr",
+                                 "Error: waitForReadyRead() failed");
+            received_file.close();
+
+            return;
+          }
+        }
+      }
     }
 
     received_file.close();
+
+    QFile log_file(file_path + "/log.txt");
+    if (log_file.open(QIODevice::WriteOnly | QIODevice::Append)) {
+      QTextStream out(&log_file);
+      out << "File: " << filename << " downloaded at: "
+          << QDateTime::currentDateTime().toString(Qt::ISODate) << "\n";
+      log_file.close();
+    } else {
+      qDebug() << "Error: Failed to open log file for writing";
+    }
+  } else {
+    QMessageBox::warning(this, "Error",
+                         "Error: Failed to open received file for writing");
   }
 }
 

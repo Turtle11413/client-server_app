@@ -1,5 +1,5 @@
-#ifndef VIEW_H_
-#define VIEW_H_
+#ifndef CLIENT_H_
+#define CLIENT_H_
 
 #include <QFile>
 #include <QGridLayout>
@@ -35,7 +35,7 @@ class Client : public QWidget {
   void RequestFileFromServer(const QString &filename);
   void ReceiveFileFromServer(QDataStream &in);
   void ReadFromServerForUpdateTable(QDataStream &in, const QString &message);
-  void DownloadLink(QTableWidgetItem *link);
+  void DownloadLink(QTableWidgetItem *item);
   void SendFileToServer(QFile &file);
 
   void AddNewRow(const QString &filename, const QString &link,
@@ -60,4 +60,4 @@ class Client : public QWidget {
   bool is_connected_ = false;
 };
 
-#endif  // VIEW_H_
+#endif  // CLIENT_H_
