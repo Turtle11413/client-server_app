@@ -34,8 +34,6 @@ void Server::FillFileMap() {
   QDir directory("files/");
 
   QFileInfoList files_list = directory.entryInfoList(QDir::Files);
-  // file_map_.clear();
-  std::cout << "Files list size: " << files_list.size() << std::endl;
 
   for (auto it : files_list) {
     QString filename = it.fileName();
@@ -43,7 +41,6 @@ void Server::FillFileMap() {
 
     file_map_.insert(load_date, filename);
   }
-  std::cout << "map size: " << file_map_.size() << std::endl;
 }
 
 void Server::NewConnection() {
@@ -59,7 +56,6 @@ void Server::NewConnection() {
     LoadTable(socket);
 
     std::cout << "New client connected: " << socket->peerPort() << std::endl;
-    std::cout << "size: " << client_sockets_.size() << std::endl;
   }
 }
 
@@ -71,7 +67,6 @@ void Server::ClientDisconnected() {
     socket->deleteLater();
 
     std::cout << "Client disconnected: " << socket->peerPort() << std::endl;
-    std::cout << "size: " << client_sockets_.size() << std::endl;
   }
 }
 
@@ -87,10 +82,10 @@ void Server::ReadMessageFromClient() {
   QString message;
   in >> message;
 
-  std::cout << "\nMessage is: " << message.toStdString() << std::endl;
+  std::cout << "\nMessage from " << socket->peerPort() << ": "
+            << message.toStdString() << std::endl;
 
   if (message == "UPLOAD_FILE") {
-
     ReceiveFileFromClient(in, socket);
   } else if (message == "SEND_ME_FILE") {
     QString filename;
@@ -104,15 +99,12 @@ bool Server::isExistsFile(const QString &filename) {
 }
 
 void Server::ReceiveFileFromClient(QDataStream &in, QTcpSocket *client) {
-  std::cout << "Start receiving from client\n";
 
   QString filename;
   in >> filename;
-  std::cout << "filename is: " << filename.toStdString() << std::endl;
 
   QString send_date;
   in >> send_date;
-  std::cout << "date is: " << send_date.toStdString() << std::endl;
 
   qint64 size = 0;
   in >> size;
@@ -140,8 +132,6 @@ void Server::ReceiveFileFromClient(QDataStream &in, QTcpSocket *client) {
     }
   }
 
-  std::cout << "Send file size: " << bytes_receive << std::endl;
-
   file.close();
 
   emit NewFileUploaded(filename, send_date);
@@ -158,13 +148,11 @@ void Server::SendFileToClient(const QString &filename, QTcpSocket *client) {
   std::cout << std::endl << message.toStdString() << std::endl;
 
   out << filename;
-  std::cout << "filename: " << filename.toStdString() << std::endl;
 
   QFile file("./files/" + filename);
 
   qint64 file_size = QFileInfo(file).size();
   out << file_size;
-  std::cout << "size: " << file_size << std::endl;
 
   if (file.open(QIODevice::ReadOnly)) {
 
@@ -213,7 +201,6 @@ void Server::LoadTable(QTcpSocket *client) {
   out << table_size;
 
   if (!file_map_.empty()) {
-    std::cout << "map size: " << file_map_.size() << std::endl;
     for (auto it = file_map_.begin(); it != file_map_.end(); ++it) {
       out << it.key() << it.value();
     }

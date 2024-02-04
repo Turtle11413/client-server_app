@@ -20,7 +20,6 @@ class Client : public QWidget {
  public slots:
   void OnConnectButtonClicked();
   void OnSendButtonClicked();
-  void OnDownloadButtonClicked();
 
  private:
   void InitMainWindow();
@@ -52,7 +51,6 @@ class Client : public QWidget {
 
   QPushButton *connect_button_;
   QPushButton *send_button_;
-  // QPushButton *download_button_;
 
   QLabel *client_status_label_;
 

@@ -128,6 +128,10 @@ void Client::onConnectionError(QAbstractSocket::SocketError socketError) {
       "Failed to connect to the server: " + socket_->errorString());
   is_connected_ = false;
   client_status_label_->setText("Client status: Disconnected");
+
+  for (int row = table_widget_->rowCount() - 1; row >= 0; --row) {
+    table_widget_->removeRow(row);
+  }
 }
 
 void Client::OnConnectButtonClicked() {
@@ -158,13 +162,6 @@ void Client::OnSendButtonClicked() {
   }
 }
 
-void Client::OnDownloadButtonClicked() {
-  // QString link = "http://localhost:1111/files/wallpaper.jpg";
-  // QDesktopServices::openUrl(QUrl(link));
-
-  RequestFileFromServer("wallpaper.jpg");
-}
-
 void Client::SendFileToServer(QFile &file) {
   QDataStream out(socket_);
   QString message = "UPLOAD_FILE";
@@ -172,15 +169,12 @@ void Client::SendFileToServer(QFile &file) {
 
   QString filename = QFileInfo(file).fileName();
   out << filename;
-  // std::cout << "filename: " << filename.toStdString() << std::endl;
 
   QString send_date = QDateTime::currentDateTime().toString();
   out << send_date;
-  // std::cout << "send date: " << send_date.toStdString() << std::endl;
 
   qint64 file_size = QFileInfo(file).size();
   out << file_size;
-  // std::cout << "size: " << file_size << std::endl;
 
   QByteArray buffer;
   const int block_size = 8192;
@@ -237,7 +231,6 @@ void Client::ReceiveFileFromServer(QDataStream &in) {
         // std::cout << buffer.toStdString();
         if (buffer.isEmpty()) {
           if (!socket_->waitForReadyRead()) {
-            // std::cerr << "Error: waitForReadyRead() failed" << std::endl;
             QMessageBox::warning(this, "Erorr",
                                  "Error: waitForReadyRead() failed");
             received_file.close();
